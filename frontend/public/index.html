@@ -281,8 +281,7 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────────────────────
-// Change BACKEND_URL to your Render deployment URL after deploying
-const BACKEND_URL = localStorage.getItem('homeos_backend') || 'http://localhost:3001';
+const BACKEND_URL = localStorage.getItem('homeos_backend') || 'https://homeos-backend-ivzy.onrender.com';
 document.getElementById('backend-url-display').textContent = BACKEND_URL.replace('https://','').replace('http://','');
 
 // ── State ────────────────────────────────────────────────────────────────
