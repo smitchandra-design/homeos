@@ -1,0 +1,9 @@
+{
+  "name": "homeos",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "install:backend": "cd backend && npm install"
+  }
+}

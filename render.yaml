@@ -1,0 +1,60 @@
+services:
+  # Backend API
+  - type: web
+    name: homeos-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TUYA_CLIENT_ID
+        sync: false
+      - key: TUYA_CLIENT_SECRET
+        sync: false
+      - key: TUYA_HOME_ID
+        sync: false
+      - key: TUYA_SCENE_GOODNIGHT
+        sync: false
+      - key: TUYA_SCENE_MORNING
+        sync: false
+      - key: TUYA_SCENE_MOVIE
+        sync: false
+      - key: TUYA_SCENE_AWAY
+        sync: false
+      - key: TUYA_SCENE_WELCOME
+        sync: false
+      - key: ATOMBERG_API_KEY
+        sync: false
+      - key: ATOMBERG_API_SECRET
+        sync: false
+      - key: ALEXA_CLIENT_ID
+        sync: false
+      - key: ALEXA_CLIENT_SECRET
+        sync: false
+      - key: ALEXA_REDIRECT_URI
+        sync: false
+      - key: ALEXA_ACCESS_TOKEN
+        sync: false
+      - key: ALEXA_REFRESH_TOKEN
+        sync: false
+      - key: ALEXA_TOKEN_EXPIRY
+        sync: false
+
+  # Frontend static site
+  - type: web
+    name: homeos-frontend
+    runtime: static
+    buildCommand: echo "no build needed"
+    staticPublishPath: ./frontend/public
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
