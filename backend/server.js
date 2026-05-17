@@ -16,6 +16,12 @@ app.use(express.json());
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+// Temporary debug route
+app.get('/debug-tuya', async (req, res) => {
+  const homeId = process.env.TUYA_HOME_ID;
+  res.json({ homeId, hasClientId: !!process.env.TUYA_CLIENT_ID, hasSecret: !!process.env.TUYA_CLIENT_SECRET });
+});
+
 // Device integrations
 app.use('/api/tuya', tuyaRouter);
 app.use('/api/atomberg', atombergRouter);
