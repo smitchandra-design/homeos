@@ -3,7 +3,7 @@ import crypto from 'crypto';
 
 export const tuyaRouter = express.Router();
 
-const BASE_URL = 'https://openapi.tuyaeu.com'; // Change to tuyaus.com if US account
+const BASE_URL = 'https://openapi.tuyain.com'; // Change to tuyaus.com if US account
 const CLIENT_ID = process.env.TUYA_CLIENT_ID;
 const CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
 
