@@ -2,36 +2,42 @@ import express from 'express';
 
 export const atombergRouter = express.Router();
 
-// Atomberg Partner API base URL
-const BASE_URL = 'https://partner.atomberg.com/api/v1';
+const BASE_URL = 'https://api.developer.atomberg-iot.com';
 const API_KEY = process.env.ATOMBERG_API_KEY;
-const API_SECRET = process.env.ATOMBERG_API_SECRET;
+const REFRESH_TOKEN = process.env.ATOMBERG_REFRESH_TOKEN;
 
-let atombergToken = null;
-let tokenExpiry = 0;
+let accessToken = null;
+let accessTokenExpiry = 0;
 
-async function getAtombergToken() {
-  if (atombergToken && Date.now() < tokenExpiry) return atombergToken;
-  const res = await fetch(`${BASE_URL}/auth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiKey: API_KEY, apiSecret: API_SECRET })
+// Step 1: get access token using api_key + refresh_token
+async function getAccessToken() {
+  if (accessToken && Date.now() < accessTokenExpiry) return accessToken;
+
+  const res = await fetch(`${BASE_URL}/v1/get_access_token`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${REFRESH_TOKEN}`,
+      'x-api-key': API_KEY
+    }
   });
+
   const data = await res.json();
-  if (data.token) {
-    atombergToken = data.token;
-    tokenExpiry = Date.now() + (data.expiresIn || 3600) * 1000;
-    return atombergToken;
+  if (data.status === 'success' && data.message?.access_token) {
+    accessToken = data.message.access_token;
+    // Access tokens typically expire in 1 hour
+    accessTokenExpiry = Date.now() + 55 * 60 * 1000;
+    return accessToken;
   }
   throw new Error('Atomberg auth failed: ' + JSON.stringify(data));
 }
 
 async function atombergRequest(method, path, body = null) {
-  const token = await getAtombergToken();
+  const token = await getAccessToken();
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
       'Authorization': `Bearer ${token}`,
+      'x-api-key': API_KEY,
       'Content-Type': 'application/json'
     },
     body: body ? JSON.stringify(body) : undefined
@@ -42,17 +48,17 @@ async function atombergRequest(method, path, body = null) {
 // GET /api/atomberg/devices
 atombergRouter.get('/devices', async (req, res) => {
   try {
-    const data = await atombergRequest('GET', '/devices');
-    const devices = (data.devices || []).map(d => ({
-      id: d.deviceId,
-      name: d.name,
+    const data = await atombergRequest('GET', '/v1/get_device_list');
+    const list = data.message?.device_list || data.message || [];
+    const devices = list.map(d => ({
+      id: d.device_id,
+      name: d.name || d.device_name || 'Atomberg Fan',
       platform: 'atomberg',
       type: 'fan',
-      online: d.isOnline,
-      on: d.state?.power === 'ON',
-      speed: d.state?.speed || 0,        // 1–5
-      mode: d.state?.mode || 'normal',   // normal / sleep / boost / auto
-      timer: d.state?.timer || 0,
+      online: d.is_online ?? true,
+      on: d.state?.power === 1 || d.state?.power === 'ON' || false,
+      speed: d.state?.speed || 0,
+      mode: d.state?.sleep_mode ? 'sleep' : 'normal',
       raw: d.state
     }));
     res.json({ devices });
@@ -61,20 +67,31 @@ atombergRouter.get('/devices', async (req, res) => {
   }
 });
 
+// Debug: see raw Atomberg API response
+atombergRouter.get('/debug', async (req, res) => {
+  try {
+    const token = await getAccessToken();
+    const data = await atombergRequest('GET', '/v1/get_device_list');
+    res.json({ token_ok: true, raw: data });
+  } catch (err) {
+    res.status(500).json({ token_ok: false, error: err.message });
+  }
+});
+
 // POST /api/atomberg/control
 atombergRouter.post('/control', async (req, res) => {
   const { deviceId, command, value } = req.body;
   try {
-    let payload = {};
+    let params = { device_id: deviceId };
     switch (command) {
-      case 'turn_on':   payload = { power: 'ON' }; break;
-      case 'turn_off':  payload = { power: 'OFF' }; break;
-      case 'set_speed': payload = { speed: Math.min(5, Math.max(1, Math.round(value))) }; break;
-      case 'set_mode':  payload = { mode: value }; break; // sleep | boost | auto | normal
-      case 'set_timer': payload = { timer: value }; break; // minutes
-      default: return res.status(400).json({ error: 'Unknown command for Atomberg fan' });
+      case 'turn_on':   params.power = 1; break;
+      case 'turn_off':  params.power = 0; break;
+      case 'set_speed': params.speed = Math.min(5, Math.max(1, Math.round(value))); break;
+      case 'set_mode':  params.sleep_mode = value === 'sleep' ? 1 : 0; break;
+      case 'set_timer': params.timer = value; break;
+      default: return res.status(400).json({ error: 'Unknown command' });
     }
-    const data = await atombergRequest('POST', `/devices/${deviceId}/control`, payload);
+    const data = await atombergRequest('POST', '/v1/control', params);
     res.json({ success: true, result: data });
   } catch (err) {
     res.status(500).json({ error: err.message });
