@@ -63,6 +63,47 @@ app.get('/debug-homes', async (req, res) => {
   }
 });
 
+app.get('/debug-tuya-homes', async (req, res) => {
+  const CLIENT_ID = process.env.TUYA_CLIENT_ID;
+  const CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
+  const BASE_URL = 'https://openapi.tuyain.com';
+  const crypto = await import('crypto');
+
+  try {
+    // Get token
+    const ts = Date.now().toString();
+    const contentHash = crypto.default.createHash('sha256').update('').digest('hex');
+    const stringToSign = ['GET', contentHash, '', '/v1.0/token?grant_type=1'].join('\n');
+    const signStr = CLIENT_ID + ts + stringToSign;
+    const sig = crypto.default.createHmac('sha256', CLIENT_SECRET).update(signStr).digest('hex').toUpperCase();
+
+    const tokenRes = await fetch(`${BASE_URL}/v1.0/token?grant_type=1`, {
+      headers: { 'client_id': CLIENT_ID, 'sign': sig, 'sign_method': 'HMAC-SHA256', 't': ts, 'lang': 'en' }
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.success) return res.json({ error: 'Token failed', detail: tokenData });
+
+    const token = tokenData.result.access_token;
+    const uid = tokenData.result.uid;
+
+    // Fetch devices directly by uid — no home ID needed
+    const ts2 = Date.now().toString();
+    const path = `/v1.0/users/${uid}/devices`;
+    const sh2 = crypto.default.createHash('sha256').update('').digest('hex');
+    const sts2 = ['GET', sh2, '', path].join('\n');
+    const ss2 = CLIENT_ID + token + ts2 + sts2;
+    const sig2 = crypto.default.createHmac('sha256', CLIENT_SECRET).update(ss2).digest('hex').toUpperCase();
+
+    const devRes = await fetch(`${BASE_URL}${path}`, {
+      headers: { 'client_id': CLIENT_ID, 'access_token': token, 'sign': sig2, 'sign_method': 'HMAC-SHA256', 't': ts2, 'lang': 'en' }
+    });
+    const devData = await devRes.json();
+    res.json({ uid, devices: devData });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Device integrations
 app.use('/api/tuya', tuyaRouter);
 app.use('/api/atomberg', atombergRouter);
