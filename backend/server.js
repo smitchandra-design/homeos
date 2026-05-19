@@ -6,6 +6,7 @@ import { tuyaRouter } from './integrations/tuya.js';
 import { atombergRouter } from './integrations/atomberg.js';
 import { alexaRouter } from './integrations/alexa.js';
 import { spotifyRouter } from './integrations/spotify.js';
+import { rulesRouter } from './integrations/rules.js';
 import { agentRouter } from './agent.js';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use('/api/tuya', tuyaRouter);
 app.use('/api/atomberg', atombergRouter);
 app.use('/api/alexa', alexaRouter);
 app.use('/api/spotify', spotifyRouter);
+app.use('/api/rules', rulesRouter);
 
 // AI Agent
 app.use('/api/agent', agentRouter);
