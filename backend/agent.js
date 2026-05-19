@@ -157,7 +157,7 @@ Keep responses short — 1-3 sentences max. Never use markdown bullets in respon
 
   try {
     let response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt,
       tools,
@@ -182,7 +182,7 @@ Keep responses short — 1-3 sentences max. Never use markdown bullets in respon
       messages.push({ role: 'user', content: toolResults });
 
       response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: systemPrompt,
         tools,
