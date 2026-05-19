@@ -48,6 +48,34 @@ const tools = [
         actions: { type: 'array', items: { type: 'string' }, description: 'List of actions to perform' }
       }
     }
+  },
+  {
+    name: 'play_music',
+    description: 'Play music on Spotify by mood/playlist name (e.g. "chill", "focus", "morning energy"). Requires Spotify Premium.',
+    input_schema: {
+      type: 'object',
+      required: ['mood'],
+      properties: {
+        mood: { type: 'string', description: 'Mood, genre, or playlist search term (e.g. "jazz dinner", "lofi study", "bollywood party")' }
+      }
+    }
+  },
+  {
+    name: 'control_music',
+    description: 'Pause, resume, skip, or adjust volume of currently playing Spotify music',
+    input_schema: {
+      type: 'object',
+      required: ['action'],
+      properties: {
+        action: { type: 'string', enum: ['pause', 'resume', 'next', 'previous', 'volume'], description: 'Music control action' },
+        volume: { type: 'number', description: 'Volume 0-100, required when action is "volume"' }
+      }
+    }
+  },
+  {
+    name: 'get_music_state',
+    description: 'Check what is currently playing on Spotify and on which device',
+    input_schema: { type: 'object', properties: {} }
   }
 ];
 
@@ -73,8 +101,31 @@ async function executeTool(toolName, toolInput, baseUrl) {
       return await r.json();
     }
     case 'create_rule': {
-      // Store rule in memory (extend with DB later)
       return { success: true, message: `Rule "${toolInput.name}" created`, rule: toolInput };
+    }
+    case 'play_music': {
+      const r = await fetch(`${baseUrl}/api/spotify/mood`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mood: toolInput.mood })
+      });
+      return await r.json();
+    }
+    case 'control_music': {
+      const action = toolInput.action;
+      if (action === 'volume') {
+        const r = await fetch(`${baseUrl}/api/spotify/volume`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ level: toolInput.volume })
+        });
+        return await r.json();
+      }
+      const pathMap = { pause: '/api/spotify/pause', resume: '/api/spotify/play', next: '/api/spotify/next', previous: '/api/spotify/previous' };
+      const r = await fetch(`${baseUrl}${pathMap[action]}`, { method: 'POST' });
+      return await r.json();
+    }
+    case 'get_music_state': {
+      const r = await fetch(`${baseUrl}/api/spotify/state`);
+      return await r.json();
     }
     default:
       return { error: 'Unknown tool' };
@@ -96,6 +147,7 @@ You control devices across three platforms:
 - Tuya/Smart Life: lights (living room, bedroom, kitchen, entrance), door locks (front & back), vacuum cleaner
 - Atomberg: smart ceiling fans (bedroom, living room) with sleep/boost/auto modes and speed 1-5
 - Amazon Alexa: smart speakers (living room, bedroom), plus any Alexa-compatible devices
+- Spotify: Play music by mood, control playback, adjust volume — use for scenes like Movie Mode, Dinner, Morning
 
 Your personality: efficient, warm, proactive. You speak like a smart assistant — confirm actions clearly.
 Always call get_all_devices first if you're unsure of current device states.

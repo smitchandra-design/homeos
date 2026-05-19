@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { tuyaRouter } from './integrations/tuya.js';
 import { atombergRouter } from './integrations/atomberg.js';
 import { alexaRouter } from './integrations/alexa.js';
+import { spotifyRouter } from './integrations/spotify.js';
 import { agentRouter } from './agent.js';
 
 dotenv.config();
@@ -16,139 +17,11 @@ app.use(express.json());
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// Temporary debug route
-app.get('/debug-tuya', async (req, res) => {
-  const homeId = process.env.TUYA_HOME_ID;
-  res.json({ homeId, hasClientId: !!process.env.TUYA_CLIENT_ID, hasSecret: !!process.env.TUYA_CLIENT_SECRET });
-});
-
-app.get('/debug-homes', async (req, res) => {
-  try {
-    const crypto = await import('crypto');
-    const CLIENT_ID = process.env.TUYA_CLIENT_ID;
-    const CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
-    const BASE_URL = 'https://openapi.tuyain.com';
-    
-    // Get token
-    const ts = Date.now().toString();
-    const contentHash = crypto.default.createHash('sha256').update('').digest('hex');
-    const stringToSign = ['GET', contentHash, '', '/v1.0/token?grant_type=1'].join('\n');
-    const signStr = CLIENT_ID + ts + stringToSign;
-    const sig = crypto.default.createHmac('sha256', CLIENT_SECRET).update(signStr).digest('hex').toUpperCase();
-    
-    const tokenRes = await fetch(`${BASE_URL}/v1.0/token?grant_type=1`, {
-      headers: { 'client_id': CLIENT_ID, 'sign': sig, 'sign_method': 'HMAC-SHA256', 't': ts, 'lang': 'en' }
-    });
-    const tokenData = await tokenRes.json();
-    if (!tokenData.success) return res.json({ error: 'Token failed', detail: tokenData });
-    
-    const token = tokenData.result.access_token;
-    const uid = tokenData.result.uid;
-
-    // Get homes using uid
-    const ts2 = Date.now().toString();
-    const path = `/v1.0/users/${uid}/homes`;
-    const sh2 = crypto.default.createHash('sha256').update('').digest('hex');
-    const sts2 = ['GET', sh2, '', path].join('\n');
-    const ss2 = CLIENT_ID + token + ts2 + sts2;
-    const sig2 = crypto.default.createHmac('sha256', CLIENT_SECRET).update(ss2).digest('hex').toUpperCase();
-
-    const homesRes = await fetch(`${BASE_URL}${path}`, {
-      headers: { 'client_id': CLIENT_ID, 'access_token': token, 'sign': sig2, 'sign_method': 'HMAC-SHA256', 't': ts2, 'lang': 'en' }
-    });
-    const homesData = await homesRes.json();
-    res.json({ uid, homes: homesData });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/debug-tuya-homes', async (req, res) => {
-  const CLIENT_ID = process.env.TUYA_CLIENT_ID;
-  const CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
-  const BASE_URL = 'https://openapi.tuyain.com';
-  const crypto = await import('crypto');
-
-  try {
-    // Get token
-    const ts = Date.now().toString();
-    const contentHash = crypto.default.createHash('sha256').update('').digest('hex');
-    const stringToSign = ['GET', contentHash, '', '/v1.0/token?grant_type=1'].join('\n');
-    const signStr = CLIENT_ID + ts + stringToSign;
-    const sig = crypto.default.createHmac('sha256', CLIENT_SECRET).update(signStr).digest('hex').toUpperCase();
-
-    const tokenRes = await fetch(`${BASE_URL}/v1.0/token?grant_type=1`, {
-      headers: { 'client_id': CLIENT_ID, 'sign': sig, 'sign_method': 'HMAC-SHA256', 't': ts, 'lang': 'en' }
-    });
-    const tokenData = await tokenRes.json();
-    if (!tokenData.success) return res.json({ error: 'Token failed', detail: tokenData });
-
-    const token = tokenData.result.access_token;
-    const uid = tokenData.result.uid;
-
-    // Fetch devices directly by uid — no home ID needed
-    const ts2 = Date.now().toString();
-    const path = `/v1.0/users/${uid}/devices`;
-    const sh2 = crypto.default.createHash('sha256').update('').digest('hex');
-    const sts2 = ['GET', sh2, '', path].join('\n');
-    const ss2 = CLIENT_ID + token + ts2 + sts2;
-    const sig2 = crypto.default.createHmac('sha256', CLIENT_SECRET).update(ss2).digest('hex').toUpperCase();
-
-    const devRes = await fetch(`${BASE_URL}${path}`, {
-      headers: { 'client_id': CLIENT_ID, 'access_token': token, 'sign': sig2, 'sign_method': 'HMAC-SHA256', 't': ts2, 'lang': 'en' }
-    });
-    const devData = await devRes.json();
-    res.json({ uid, devices: devData });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-app.get('/debug-tuya-linked', async (req, res) => {
-  const CLIENT_ID = process.env.TUYA_CLIENT_ID;
-  const CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
-  const BASE_URL = 'https://openapi.tuyain.com';
-  const crypto = await import('crypto');
-
-  async function req(method, path) {
-    // Get token first
-    const ts0 = Date.now().toString();
-    const ch0 = crypto.default.createHash('sha256').update('').digest('hex');
-    const sts0 = ['GET', ch0, '', '/v1.0/token?grant_type=1'].join('\n');
-    const ss0 = CLIENT_ID + ts0 + sts0;
-    const sig0 = crypto.default.createHmac('sha256', CLIENT_SECRET).update(ss0).digest('hex').toUpperCase();
-    const tRes = await fetch(`${BASE_URL}/v1.0/token?grant_type=1`, {
-      headers: { 'client_id': CLIENT_ID, 'sign': sig0, 'sign_method': 'HMAC-SHA256', 't': ts0, 'lang': 'en' }
-    });
-    const tData = await tRes.json();
-    const token = tData.result.access_token;
-
-    const ts = Date.now().toString();
-    const ch = crypto.default.createHash('sha256').update('').digest('hex');
-    const sts = [method, ch, '', path].join('\n');
-    const ss = CLIENT_ID + token + ts + sts;
-    const sig = crypto.default.createHmac('sha256', CLIENT_SECRET).update(ss).digest('hex').toUpperCase();
-    const r = await fetch(`${BASE_URL}${path}`, {
-      headers: { 'client_id': CLIENT_ID, 'access_token': token, 'sign': sig, 'sign_method': 'HMAC-SHA256', 't': ts, 'lang': 'en' }
-    });
-    return r.json();
-  }
-
-  try {
-    const results = {};
-    // Try all possible device list endpoints
-    results.a = await req('GET', '/v1.0/iot-01/associated-users/devices');
-    results.b = await req('GET', '/v2.0/cloud/thing/device?page_size=20');
-    results.c = await req('GET', '/v1.0/devices');
-    res.json(results);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
 // Device integrations
 app.use('/api/tuya', tuyaRouter);
 app.use('/api/atomberg', atombergRouter);
 app.use('/api/alexa', alexaRouter);
+app.use('/api/spotify', spotifyRouter);
 
 // AI Agent
 app.use('/api/agent', agentRouter);
