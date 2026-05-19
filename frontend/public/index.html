@@ -154,6 +154,30 @@
   .dots-loader span:nth-child(3){animation-delay:0.4s}
   @keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
 
+
+  /* Automations */
+  .rules-section { margin: 0 8px 24px; }
+  .section-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+  .add-rule-btn { background: rgba(255,255,255,0.1); color: var(--accent-blue); border: none; padding: 6px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .add-rule-btn:active { transform: scale(0.95); }
+  .rules-list { display: flex; flex-direction: column; gap: 8px; }
+  .rule-card { background: rgba(255,255,255,0.06); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); }
+  .rule-icon-box { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0; }
+  .rule-icon-box.time { background: rgba(48,209,88,0.15); color: var(--accent-green); }
+  .rule-icon-box.voice { background: rgba(0,122,255,0.15); color: var(--accent-blue); }
+  .rule-icon-box.motion { background: rgba(255,159,10,0.15); color: var(--accent-orange); }
+  .rule-info { flex: 1; min-width: 0; }
+  .rule-name-text { font-size: 15px; font-weight: 600; }
+  .rule-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rule-last { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .rule-controls { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .toggle-switch { width: 44px; height: 26px; border-radius: 13px; background: rgba(255,255,255,0.15); position: relative; cursor: pointer; transition: background 0.2s; }
+  .toggle-switch.on { background: var(--accent-green); }
+  .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; transition: left 0.2s; }
+  .toggle-switch.on::after { left: 21px; }
+  .rule-action-btn { background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+  .rule-action-btn:active { transform: scale(0.9); }
+
   /* Modal */
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(20px); }
   .modal-bg.show { display: flex; }
@@ -233,6 +257,15 @@
     </div>
 
     <div id="rooms"></div>
+
+      <!-- Automations / Rules -->
+      <div class="rules-section">
+        <div class="section-title-row">
+          <div class="section-title">Automations</div>
+          <button class="add-rule-btn" onclick="openRuleModal()">+ Add</button>
+        </div>
+        <div id="rules-list" class="rules-list"></div>
+      </div>
   </div>
 </div>
 
@@ -496,16 +529,103 @@ function toggleVoice() {
 
 function openRuleModal() { document.getElementById('rule-modal').classList.add('show'); }
 function closeRuleModal() { document.getElementById('rule-modal').classList.remove('show'); }
-function saveRule() {
+let rules = [];
+
+async function loadRules() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/rules`);
+    const data = await res.json();
+    rules = data.rules || [];
+    renderRules();
+  } catch(e) { console.warn('Failed to load rules:', e); }
+}
+
+function renderRules() {
+  const list = document.getElementById('rules-list');
+  if (!rules.length) {
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary);font-size:14px;">No automations yet. Tap + Add to create one.</div>';
+    return;
+  }
+  list.innerHTML = rules.map(r => {
+    const icon = r.trigger === 'time' ? '⏰' : r.trigger === 'voice' ? '🎤' : '🚶';
+    const meta = r.trigger === 'time' ? `At ${r.when}` : r.trigger === 'voice' ? `Voice: "${r.when}"` : 'Motion detected';
+    const lastRun = r.lastRun ? `Last ran: ${new Date(r.lastRun).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})}` : 'Never run';
+    return `
+      <div class="rule-card">
+        <div class="rule-icon-box ${r.trigger}">${icon}</div>
+        <div class="rule-info">
+          <div class="rule-name-text">${r.name}</div>
+          <div class="rule-meta">${meta} → ${r.action}</div>
+          <div class="rule-last">${lastRun}</div>
+        </div>
+        <div class="rule-controls">
+          <button class="rule-action-btn" onclick="runRule(${r.id})" title="Run now">▶</button>
+          <div class="toggle-switch ${r.enabled?'on':''}" onclick="toggleRule(${r.id})"></div>
+          <button class="rule-action-btn" onclick="deleteRule(${r.id})" title="Delete">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function saveRule() {
   const name = document.getElementById('r-name').value.trim() || 'New Rule';
-  closeRuleModal();
-  document.getElementById('r-name').value = '';
-  openDrawer();
-  addChat('agent', `Saved rule "${name}". I'll handle it from here.`);
+  const trigger = document.getElementById('r-trigger').value;
+  const when = document.getElementById('r-when').value.trim();
+  const action = document.getElementById('r-action').value;
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/rules`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, trigger, when, action, enabled: true })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeRuleModal();
+      document.getElementById('r-name').value = '';
+      document.getElementById('r-when').value = '';
+      await loadRules();
+    } else {
+      alert('Failed: ' + (data.error || 'unknown'));
+    }
+  } catch(e) {
+    alert('Failed to save rule: ' + e.message);
+  }
+}
+
+async function toggleRule(id) {
+  const r = rules.find(x => x.id === id);
+  if (!r) return;
+  const newState = !r.enabled;
+  r.enabled = newState;
+  renderRules();
+  try {
+    await fetch(`${BACKEND_URL}/api/rules/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: newState })
+    });
+  } catch(e) { console.warn(e); }
+}
+
+async function deleteRule(id) {
+  if (!confirm('Delete this automation?')) return;
+  try {
+    await fetch(`${BACKEND_URL}/api/rules/${id}`, { method: 'DELETE' });
+    await loadRules();
+  } catch(e) { console.warn(e); }
+}
+
+async function runRule(id) {
+  try {
+    await fetch(`${BACKEND_URL}/api/rules/${id}/run`, { method: 'POST' });
+    setTimeout(loadRules, 500);
+    setTimeout(refreshDevices, 1500);
+  } catch(e) { console.warn(e); }
 }
 
 refreshDevices();
+loadRules();
 setInterval(setGreeting, 60000);
+setInterval(loadRules, 30000);  // Refresh rules every 30s
 </script>
 </body>
 </html>
