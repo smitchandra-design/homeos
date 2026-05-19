@@ -6,497 +6,506 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="HomeOS">
-<meta name="theme-color" content="#0f0f10">
+<meta name="theme-color" content="#000000">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>HomeOS</title>
 <style>
   :root {
-    --bg: #0f0f10;
-    --surface: #1a1a1e;
-    --surface2: #222227;
-    --border: rgba(255,255,255,0.08);
-    --text: #f0f0f2;
-    --muted: #888;
-    --accent: #4f8ef7;
-    --accent-dim: rgba(79,142,247,0.15);
-    --green: #34c77b;
-    --amber: #f5a623;
-    --red: #e85555;
+    --bg: #000000;
+    --bg-elevated: #1c1c1e;
+    --bg-card: #1c1c1e;
+    --bg-card-active: rgba(255,255,255,0.9);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.6);
+    --text-tertiary: rgba(255,255,255,0.35);
+    --accent-blue: #007AFF;
+    --accent-yellow: #FFD60A;
+    --accent-orange: #FF9F0A;
+    --accent-green: #30D158;
+    --accent-red: #FF453A;
+    --accent-purple: #BF5AF2;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; overscroll-behavior: none; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+  html, body {
+    height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    font-size: 16px; letter-spacing: -0.01em;
+    overscroll-behavior: none;
+  }
+  body { background: radial-gradient(ellipse at top, #1a1a2e 0%, #000000 50%); min-height: 100vh; }
 
-  /* Layout */
-  .layout { display: grid; grid-template-columns: 240px 1fr; height: 100vh; }
-  @media (max-width: 768px) { .layout { grid-template-columns: 1fr; grid-template-rows: 1fr auto; } .sidebar { display: none; } }
+  .app { display: flex; flex-direction: column; height: 100vh; padding-top: var(--safe-top); }
 
-  /* Sidebar */
-  .sidebar { background: var(--surface); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; padding: 0; overflow-y: auto; padding-top: var(--safe-top); }
-  .sidebar-logo { padding: 20px 20px 12px; display: flex; align-items: center; gap: 10px; }
-  .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-  .logo-text { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
-  .sidebar-section { padding: 8px 12px 4px; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
-  .nav-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 1px 8px; border-radius: 10px; cursor: pointer; font-size: 14px; color: var(--muted); border: none; background: none; width: calc(100% - 16px); text-align: left; transition: all 0.15s; }
-  .nav-btn:hover { background: var(--surface2); color: var(--text); }
-  .nav-btn.active { background: var(--accent-dim); color: var(--accent); }
-  .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+  /* Header */
+  .header { padding: 20px 24px 12px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .header-left h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
+  .header-left p { font-size: 14px; color: var(--text-secondary); margin-top: 2px; font-weight: 400; }
+  .header-actions { display: flex; gap: 10px; }
+  .icon-btn { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.08); border: none; color: var(--text-primary); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(20px); transition: background 0.15s; }
+  .icon-btn:hover { background: rgba(255,255,255,0.14); }
+  .icon-btn:active { transform: scale(0.94); }
 
-  /* Main */
-  .main { display: flex; flex-direction: column; overflow: hidden; }
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; padding-top: calc(var(--safe-top) + 16px); border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
-  .topbar-left h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.4px; }
-  .topbar-left p { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .topbar-actions { display: flex; gap: 8px; }
+  /* Tabs */
+  .tabs { display: flex; gap: 0; padding: 0 24px 16px; overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 8px 16px; font-size: 15px; font-weight: 500; color: var(--text-secondary); border-radius: 20px; cursor: pointer; white-space: nowrap; transition: all 0.2s; background: transparent; border: none; }
+  .tab.active { background: rgba(255,255,255,0.12); color: var(--text-primary); }
+  .tab-count { display: inline-block; font-size: 11px; opacity: 0.6; margin-left: 4px; }
 
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; border: 0.5px solid var(--border); background: var(--surface2); color: var(--text); transition: all 0.15s; }
-  .btn:hover { background: var(--surface); }
-  .btn:active { transform: scale(0.97); }
-  .btn-accent { background: var(--accent); color: white; border-color: var(--accent); }
-  .btn-accent:hover { opacity: 0.88; }
-  .btn-voice { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
-  .btn-voice.active { background: rgba(232,85,85,0.15); color: var(--red); border-color: var(--red); }
+  /* Content */
+  .content { flex: 1; overflow-y: auto; padding: 0 16px 100px; }
+  .content::-webkit-scrollbar { display: none; }
 
-  /* Content scroll */
-  .content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+  /* Status pills */
+  .status-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 8px 20px; }
+  @media (max-width: 380px) { .status-row { grid-template-columns: repeat(2, 1fr); } }
+  .status-pill { background: rgba(255,255,255,0.06); border-radius: 16px; padding: 12px 14px; backdrop-filter: blur(20px); }
+  .status-pill-icon { font-size: 18px; margin-bottom: 6px; }
+  .status-pill-value { font-size: 18px; font-weight: 600; }
+  .status-pill-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
-  /* Stats row */
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  @media (max-width: 900px) { .stats { grid-template-columns: repeat(2, 1fr); } }
-  .stat { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; padding: 14px 16px; }
-  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
-  .stat-val { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
-  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  /* Scenes */
+  .scenes-section { margin: 0 8px 24px; }
+  .section-title { font-size: 22px; font-weight: 700; margin-bottom: 12px; padding: 0 4px; letter-spacing: -0.4px; }
+  .scenes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 500px) { .scenes-grid { grid-template-columns: repeat(2, 1fr); } }
+  .scene-card { background: rgba(255,255,255,0.06); border-radius: 18px; padding: 16px 14px; cursor: pointer; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); transition: all 0.2s; }
+  .scene-card:active { transform: scale(0.96); background: rgba(255,255,255,0.10); }
+  .scene-icon { font-size: 24px; margin-bottom: 10px; display: block; }
+  .scene-name { font-size: 14px; font-weight: 600; }
+  .scene-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
-  /* Section */
-  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .section-title { font-size: 15px; font-weight: 600; }
-  .section-link { font-size: 12px; color: var(--accent); cursor: pointer; }
+  /* Room */
+  .room { margin: 0 8px 24px; }
+  .room-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+  .room-title { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+  .room-meta { font-size: 13px; color: var(--text-secondary); }
+  .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; }
 
-  /* Device grid */
-  .devices-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-  .device-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 14px; cursor: pointer; transition: all 0.2s; position: relative; }
-  .device-card:active { transform: scale(0.97); }
-  .device-card.on { background: var(--accent-dim); border-color: rgba(79,142,247,0.35); }
-  .device-card.offline { opacity: 0.4; }
-  .device-emoji { font-size: 24px; margin-bottom: 10px; display: block; }
-  .device-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; line-height: 1.3; }
-  .device-state { font-size: 11px; color: var(--muted); }
-  .device-card.on .device-state { color: var(--accent); }
-  .device-toggle { position: absolute; top: 12px; right: 12px; width: 30px; height: 18px; border-radius: 9px; background: var(--border); transition: background 0.2s; }
-  .device-card.on .device-toggle { background: var(--accent); }
-  .device-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: white; transition: left 0.2s; }
-  .device-card.on .device-toggle::after { left: 15px; }
+  /* Device tile - Apple Home style */
+  .tile { background: rgba(255,255,255,0.06); border-radius: 18px; padding: 14px; cursor: pointer; position: relative; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); transition: all 0.25s cubic-bezier(.4,0,.2,1); min-height: 110px; display: flex; flex-direction: column; justify-content: space-between; }
+  .tile:active { transform: scale(0.97); }
+  .tile.on { background: var(--bg-card-active); color: #000; border-color: rgba(0,0,0,0.05); }
+  .tile.on .tile-status { color: rgba(0,0,0,0.55); }
+  .tile.on .tile-icon-circle { background: var(--accent-yellow); color: #000; }
+  .tile.on.is-fan .tile-icon-circle { background: var(--accent-blue); color: #fff; }
+  .tile.on.is-lock .tile-icon-circle { background: var(--accent-green); color: #fff; }
+  .tile.on.is-speaker .tile-icon-circle { background: var(--accent-purple); color: #fff; }
+  .tile.offline { opacity: 0.4; }
 
-  /* Fan speed dots */
-  .speed-dots { display: flex; gap: 3px; margin-top: 4px; }
-  .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
-  .dot.lit { background: var(--accent); }
+  .tile-top { display: flex; align-items: center; justify-content: space-between; }
+  .tile-icon-circle { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 17px; transition: all 0.25s; }
+  .tile.on .tile-icon-circle { box-shadow: 0 0 24px rgba(255, 214, 10, 0.5); }
+  .tile.on.is-fan .tile-icon-circle { box-shadow: 0 0 24px rgba(0, 122, 255, 0.5); animation: spin 3s linear infinite; }
+  @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
 
-  /* Rules */
-  .rules-list { display: flex; flex-direction: column; gap: 8px; }
-  .rule { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; padding: 13px 16px; }
-  .rule-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-  .rule-icon.time { background: rgba(52,199,123,0.15); }
-  .rule-icon.voice { background: rgba(79,142,247,0.15); }
-  .rule-icon.motion { background: rgba(245,166,35,0.15); }
-  .rule-icon.door { background: rgba(232,85,85,0.15); }
-  .rule-info { flex: 1; min-width: 0; }
-  .rule-name { font-size: 13px; font-weight: 500; }
-  .rule-desc { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .rule-switch { width: 36px; height: 21px; border-radius: 11px; flex-shrink: 0; cursor: pointer; position: relative; transition: background 0.2s; }
-  .rule-switch.on { background: var(--green); }
-  .rule-switch.off { background: var(--border); }
-  .rule-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 50%; background: white; transition: left 0.2s; }
-  .rule-switch.on::after { left: 18px; }
+  .tile-bottom { margin-top: 8px; }
+  .tile-name { font-size: 14px; font-weight: 600; line-height: 1.25; }
+  .tile-status { font-size: 12px; color: var(--text-secondary); margin-top: 2px; font-weight: 500; }
 
-  /* Agent chat */
-  .agent-bar { background: var(--surface); border-top: 0.5px solid var(--border); padding: 12px 16px; padding-bottom: calc(12px + var(--safe-bot)); flex-shrink: 0; }
-  .agent-messages { max-height: 120px; overflow-y: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
-  .msg { font-size: 13px; line-height: 1.5; }
-  .msg.agent { color: var(--muted); }
-  .msg.agent b { color: var(--accent); font-weight: 500; }
-  .msg.user { color: var(--text); }
-  .agent-input-row { display: flex; gap: 8px; }
-  .agent-input { flex: 1; background: var(--surface2); border: 0.5px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px; color: var(--text); outline: none; }
-  .agent-input::placeholder { color: var(--muted); }
-  .agent-input:focus { border-color: var(--accent); }
+  .speed-bars { display: flex; gap: 3px; margin-top: 6px; }
+  .speed-bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(0,0,0,0.15); }
+  .tile:not(.on) .speed-bar { background: rgba(255,255,255,0.15); }
+  .speed-bar.lit { background: var(--accent-blue); }
 
-  /* Loading dots */
-  .dots { display: inline-flex; gap: 3px; vertical-align: middle; }
-  .dots span { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); animation: blink 1s infinite; }
-  .dots span:nth-child(2){animation-delay:0.2s} .dots span:nth-child(3){animation-delay:0.4s}
-  @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+  /* FAB & Drawer */
+  .fab { position: fixed; bottom: calc(20px + var(--safe-bot)); right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--accent-blue); color: white; border: none; cursor: pointer; box-shadow: 0 8px 32px rgba(0,122,255,0.4); display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 50; transition: all 0.2s; }
+  .fab:active { transform: scale(0.92); }
+
+  .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.3s; backdrop-filter: blur(8px); }
+  .drawer-backdrop.show { opacity: 1; pointer-events: auto; }
+
+  .drawer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(28,28,30,0.95); backdrop-filter: blur(40px); border-radius: 28px 28px 0 0; padding: 12px 20px calc(20px + var(--safe-bot)); z-index: 95; transform: translateY(100%); transition: transform 0.35s cubic-bezier(.32,.72,0,1); max-height: 75vh; display: flex; flex-direction: column; border-top: 0.5px solid rgba(255,255,255,0.1); }
+  .drawer.show { transform: translateY(0); }
+  .drawer-handle { width: 36px; height: 5px; background: rgba(255,255,255,0.25); border-radius: 3px; margin: 0 auto 14px; }
+  .drawer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .drawer-title { font-size: 17px; font-weight: 600; }
+  .drawer-close { background: rgba(255,255,255,0.1); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+
+  .chat-messages { flex: 1; overflow-y: auto; max-height: 45vh; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+  .chat-messages::-webkit-scrollbar { width: 3px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+  .msg-row { display: flex; gap: 8px; align-items: flex-start; max-width: 85%; }
+  .msg-row.user { margin-left: auto; flex-direction: row-reverse; }
+  .msg-bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; }
+  .msg-row.agent .msg-bubble { background: rgba(255,255,255,0.1); color: var(--text-primary); border-bottom-left-radius: 6px; }
+  .msg-row.user .msg-bubble { background: var(--accent-blue); color: white; border-bottom-right-radius: 6px; }
+  .msg-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-blue); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .msg-row.user .msg-avatar { background: rgba(255,255,255,0.15); }
+
+  .chat-input-row { display: flex; gap: 8px; align-items: center; }
+  .chat-input { flex: 1; background: rgba(255,255,255,0.08); border: none; border-radius: 22px; padding: 12px 18px; font-size: 15px; color: white; outline: none; }
+  .chat-input::placeholder { color: var(--text-tertiary); }
+  .chat-input:focus { background: rgba(255,255,255,0.12); }
+  .chat-btn { width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+  .chat-btn-voice { background: rgba(255,255,255,0.1); color: white; }
+  .chat-btn-voice.listening { background: var(--accent-red); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .chat-btn-send { background: var(--accent-blue); color: white; }
+
+  .dots-loader { display: inline-flex; gap: 4px; padding: 4px; }
+  .dots-loader span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-secondary); animation: bounce 1.4s infinite; }
+  .dots-loader span:nth-child(2){animation-delay:0.2s}
+  .dots-loader span:nth-child(3){animation-delay:0.4s}
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
 
   /* Modal */
-  .modal-wrap { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-  .modal-wrap.show { display: flex; }
-  .modal { background: var(--surface); border: 0.5px solid var(--border); border-radius: 20px; padding: 24px; width: 360px; max-width: 90vw; }
-  .modal h2 { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
-  .field { margin-bottom: 14px; }
-  .field label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
-  .field input, .field select { width: 100%; background: var(--surface2); border: 0.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--text); }
-  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
-  .field select option { background: var(--surface); }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(20px); }
+  .modal-bg.show { display: flex; }
+  .modal { background: rgba(28,28,30,0.95); backdrop-filter: blur(40px); border-radius: 24px; padding: 24px; width: 360px; max-width: 90vw; border: 0.5px solid rgba(255,255,255,0.1); }
+  .modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 18px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-field label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
+  .modal-field input, .modal-field select { width: 100%; background: rgba(255,255,255,0.08); border: none; border-radius: 12px; padding: 12px 14px; font-size: 15px; color: white; outline: none; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-btn { flex: 1; padding: 12px; border-radius: 14px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .modal-btn-cancel { background: rgba(255,255,255,0.1); color: white; }
+  .modal-btn-confirm { background: var(--accent-blue); color: white; }
 
-  /* Voice animation */
-  .voice-bars { display: none; align-items: flex-end; gap: 2px; height: 16px; }
-  .voice-bars.show { display: flex; }
-  .vbar { width: 3px; background: var(--red); border-radius: 2px; animation: vwave 0.6s ease-in-out infinite alternate; }
-  .vbar:nth-child(1){height:6px;animation-delay:0s}
-  .vbar:nth-child(2){height:14px;animation-delay:0.1s}
-  .vbar:nth-child(3){height:10px;animation-delay:0.05s}
-  .vbar:nth-child(4){height:16px;animation-delay:0.15s}
-  .vbar:nth-child(5){height:8px;animation-delay:0.08s}
-  @keyframes vwave { from{transform:scaleY(0.4)} to{transform:scaleY(1)} }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .empty { padding: 80px 20px; text-align: center; color: var(--text-secondary); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
 
-<div class="layout">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon">🏠</div>
-      <span class="logo-text">HomeOS</span>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <h1 id="greeting">Good morning</h1>
+      <p id="subtitle">Loading your home…</p>
     </div>
-
-    <div class="sidebar-section">Overview</div>
-    <button class="nav-btn active" onclick="setNav(this,'dashboard')"><span class="nav-icon">⚡</span> Dashboard</button>
-    <button class="nav-btn" onclick="setNav(this,'devices')"><span class="nav-icon">🔌</span> All Devices</button>
-    <button class="nav-btn" onclick="setNav(this,'rules')"><span class="nav-icon">⚙️</span> Smart Rules</button>
-    <button class="nav-btn" onclick="setNav(this,'energy')"><span class="nav-icon">📊</span> Energy</button>
-
-    <div class="sidebar-section" style="margin-top:8px;">Rooms</div>
-    <button class="nav-btn" onclick="filterRoom('Living Room')"><span class="nav-icon">🛋️</span> Living Room</button>
-    <button class="nav-btn" onclick="filterRoom('Bedroom')"><span class="nav-icon">🛏️</span> Bedroom</button>
-    <button class="nav-btn" onclick="filterRoom('Kitchen')"><span class="nav-icon">🍳</span> Kitchen</button>
-    <button class="nav-btn" onclick="filterRoom('Entrance')"><span class="nav-icon">🚪</span> Entrance</button>
-
-    <div style="margin-top:auto;padding:12px 8px;border-top:0.5px solid var(--border);">
-      <div style="padding:10px 12px;font-size:11px;color:var(--muted);">
-        <div id="connection-status">⚪ Connecting...</div>
-        <div style="margin-top:3px;" id="backend-url-display"></div>
-      </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="refreshDevices()" title="Refresh">↻</button>
+      <button class="icon-btn" onclick="openRuleModal()" title="Add Rule">+</button>
     </div>
-  </aside>
+  </div>
 
-  <!-- Main area -->
-  <div class="main">
-    <div class="topbar">
-      <div class="topbar-left">
-        <h1 id="page-title">Dashboard</h1>
-        <p id="page-sub">Loading devices...</p>
+  <div class="tabs" id="tabs"></div>
+
+  <div class="content" id="content">
+    <div class="status-row">
+      <div class="status-pill">
+        <div class="status-pill-icon">💡</div>
+        <div class="status-pill-value" id="lights-on">—</div>
+        <div class="status-pill-label">Lights on</div>
       </div>
-      <div class="topbar-actions">
-        <button class="btn btn-voice" id="voice-btn" onclick="toggleVoice()">
-          🎤 <span id="voice-label">Voice</span>
-          <div class="voice-bars" id="voice-bars">
-            <div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div>
-          </div>
-        </button>
-        <button class="btn btn-accent" onclick="showAddRule()">＋ Rule</button>
+      <div class="status-pill">
+        <div class="status-pill-icon">🌀</div>
+        <div class="status-pill-value" id="fans-on">—</div>
+        <div class="status-pill-label">Fans running</div>
+      </div>
+      <div class="status-pill">
+        <div class="status-pill-icon">🟢</div>
+        <div class="status-pill-value" style="font-size:16px;">Secure</div>
+        <div class="status-pill-label">Home status</div>
       </div>
     </div>
 
-    <div class="content" id="content">
-      <!-- Stats -->
-      <div class="stats" id="stats">
-        <div class="stat"><div class="stat-label">Devices on</div><div class="stat-val" id="s-on">—</div><div class="stat-sub" id="s-total">Loading...</div></div>
-        <div class="stat"><div class="stat-label">Active rules</div><div class="stat-val" id="s-rules">4</div><div class="stat-sub">2 run today</div></div>
-        <div class="stat"><div class="stat-label">Energy today</div><div class="stat-val">3.2 kWh</div><div class="stat-sub">↓ 12% vs yesterday</div></div>
-        <div class="stat"><div class="stat-label">Home</div><div class="stat-val">🟢</div><div class="stat-sub">All locks closed</div></div>
-      </div>
-
-      <!-- Devices -->
-      <div>
-        <div class="section-head">
-          <div class="section-title">Devices</div>
-          <div class="section-link" onclick="refreshDevices()">↻ Refresh</div>
+    <div class="scenes-section">
+      <div class="section-title">Scenes</div>
+      <div class="scenes-grid">
+        <div class="scene-card" onclick="runScene('good_morning')">
+          <span class="scene-icon">☀️</span>
+          <div class="scene-name">Good Morning</div>
+          <div class="scene-desc">Lights + Music</div>
         </div>
-        <div class="devices-grid" id="devices-grid"><div style="color:var(--muted);font-size:13px;">Loading devices...</div></div>
-      </div>
-
-      <!-- Rules -->
-      <div>
-        <div class="section-head">
-          <div class="section-title">Smart Rules</div>
-          <div class="section-link" onclick="showAddRule()">+ Add</div>
+        <div class="scene-card" onclick="runScene('movie_mode')">
+          <span class="scene-icon">🎬</span>
+          <div class="scene-name">Movie Mode</div>
+          <div class="scene-desc">Dim + Cinema</div>
         </div>
-        <div class="rules-list" id="rules-list"></div>
+        <div class="scene-card" onclick="runScene('dinner')">
+          <span class="scene-icon">🍽️</span>
+          <div class="scene-name">Dinner</div>
+          <div class="scene-desc">Warm + Jazz</div>
+        </div>
+        <div class="scene-card" onclick="runScene('good_night')">
+          <span class="scene-icon">🌙</span>
+          <div class="scene-name">Good Night</div>
+          <div class="scene-desc">All off + Lock</div>
+        </div>
       </div>
     </div>
 
-    <!-- Agent bar -->
-    <div class="agent-bar">
-      <div class="agent-messages" id="agent-msgs">
-        <div class="msg agent"><b>HomeOS Agent</b> — Ready. Ask me anything about your home.</div>
-      </div>
-      <div class="agent-input-row">
-        <input class="agent-input" id="agent-input" placeholder='Try: "Turn off all lights" or "Good night mode"' onkeydown="if(event.key==='Enter')sendToAgent()">
-        <button class="btn btn-accent" onclick="sendToAgent()">Send</button>
-      </div>
-    </div>
+    <div id="rooms"></div>
   </div>
 </div>
 
-<!-- Add Rule Modal -->
-<div class="modal-wrap" id="modal" onclick="if(event.target===this)hideModal()">
+<button class="fab" onclick="toggleDrawer()" title="HomeOS Agent">✨</button>
+
+<div class="drawer-backdrop" id="drawer-bg" onclick="toggleDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-header">
+    <div class="drawer-title">✨ HomeOS Agent</div>
+    <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+  </div>
+  <div class="chat-messages" id="chat">
+    <div class="msg-row agent">
+      <div class="msg-avatar">✨</div>
+      <div class="msg-bubble">Hi Smit. I can control your lights, fans, and music. Just ask.</div>
+    </div>
+  </div>
+  <div class="chat-input-row">
+    <button class="chat-btn chat-btn-voice" id="voice-btn" onclick="toggleVoice()">🎤</button>
+    <input class="chat-input" id="chat-input" placeholder='Try "dim the living lights"' onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="chat-btn chat-btn-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="rule-modal" onclick="if(event.target===this)closeRuleModal()">
   <div class="modal">
     <h2>New Smart Rule</h2>
-    <div class="field"><label>Rule name</label><input id="r-name" placeholder="e.g. Good Night Mode"></div>
-    <div class="field"><label>Trigger</label>
+    <div class="modal-field"><label>Rule name</label><input id="r-name" placeholder="Good Night Mode"></div>
+    <div class="modal-field"><label>Trigger</label>
       <select id="r-trigger">
         <option value="time">At a specific time</option>
         <option value="voice">Voice command</option>
         <option value="motion">Motion detected</option>
-        <option value="door">Door opens / closes</option>
-        <option value="sunrise">Sunrise / Sunset</option>
       </select>
     </div>
-    <div class="field"><label>When / Keyword</label><input id="r-when" placeholder="e.g. 10:30 PM  or  'Good night'"></div>
-    <div class="field"><label>Action</label>
+    <div class="modal-field"><label>When</label><input id="r-when" placeholder="10:30 PM"></div>
+    <div class="modal-field"><label>Action</label>
       <select id="r-action">
         <option>Turn off all lights</option>
-        <option>Lock all doors</option>
-        <option>Set fans to sleep mode</option>
-        <option>Turn off all devices</option>
-        <option>Turn on entrance light</option>
-        <option>Play ambient music</option>
+        <option>Run Good Night scene</option>
         <option>Run Good Morning scene</option>
+        <option>Set fans to sleep mode</option>
       </select>
     </div>
     <div class="modal-actions">
-      <button class="btn" onclick="hideModal()">Cancel</button>
-      <button class="btn btn-accent" onclick="saveRule()">Save Rule</button>
+      <button class="modal-btn modal-btn-cancel" onclick="closeRuleModal()">Cancel</button>
+      <button class="modal-btn modal-btn-confirm" onclick="saveRule()">Save</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── Config ──────────────────────────────────────────────────────────────
 const BACKEND_URL = localStorage.getItem('homeos_backend') || 'https://homeos-backend-ivzy.onrender.com';
-document.getElementById('backend-url-display').textContent = BACKEND_URL.replace('https://','').replace('http://','');
 
-// ── State ────────────────────────────────────────────────────────────────
 let allDevices = [];
+let activeRoom = 'all';
 let chatHistory = [];
-let isListening = false;
 let isThinking = false;
+let isListening = false;
+let SR = null;
 
-const rules = [
-  { name: 'Good Morning', desc: '6:30 AM → Kitchen light on + speaker on', trigger: 'time', on: true },
-  { name: 'Movie Mode', desc: 'Voice "Movie time" → Dim lights, fan auto', trigger: 'voice', on: true },
-  { name: 'Good Night', desc: '11 PM → All lights off, locks closed, fans low', trigger: 'time', on: true },
-  { name: 'Motion Entrance', desc: 'Motion detected → Entrance light on', trigger: 'motion', on: false },
-];
+function inferRoom(name) {
+  const n = name.toLowerCase();
+  if (n.includes('master')) return 'Master Bedroom';
+  if (n.includes('kids')) return 'Kids Room';
+  if (n.includes('living') || n.includes('hall')) return 'Living Room';
+  if (n.includes('dining')) return 'Dining';
+  if (n.includes('kitchen')) return 'Kitchen';
+  if (n.includes('bedroom') || n.includes('bed')) return 'Bedroom';
+  return 'Other';
+}
 
-// ── Device type → emoji ──────────────────────────────────────────────────
-const emoji = { light: '💡', fan: '🌀', lock: '🔐', speaker: '🔊', vacuum: '🤖', device: '📦' };
+function setGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 5 ? 'Late night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
+  document.getElementById('greeting').textContent = greet + ', Smit';
+}
 
-// ── Fetch + render devices ───────────────────────────────────────────────
 async function refreshDevices() {
-  document.getElementById('page-sub').textContent = 'Fetching devices...';
   try {
     const res = await fetch(`${BACKEND_URL}/api/devices`);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    allDevices = data.devices || [];
-    document.getElementById('connection-status').textContent = '🟢 Connected';
-    renderDevices(allDevices);
-    const on = allDevices.filter(d => d.on).length;
-    document.getElementById('s-on').textContent = on;
-    document.getElementById('s-total').textContent = `of ${allDevices.length} total`;
-    document.getElementById('page-sub').textContent = `${allDevices.length} devices · Last updated just now`;
-  } catch (err) {
-    document.getElementById('connection-status').textContent = '🔴 Offline · ' + err.message;
-    document.getElementById('page-sub').textContent = 'Could not reach backend — showing demo data';
-    loadDemoDevices();
+    allDevices = (data.devices || []).map(d => ({ ...d, room: d.room || inferRoom(d.name) }));
+    renderAll();
+    document.getElementById('subtitle').textContent = `${allDevices.length} devices · ${new Date().toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})}`;
+  } catch (e) {
+    document.getElementById('subtitle').textContent = 'Offline · ' + e.message;
   }
 }
 
-function loadDemoDevices() {
-  allDevices = [
-    { id: 'demo-1', name: 'Living Room Light', platform: 'tuya', type: 'light', on: true, online: true },
-    { id: 'demo-2', name: 'Bedroom Light', platform: 'tuya', type: 'light', on: false, online: true },
-    { id: 'demo-3', name: 'Kitchen Light', platform: 'tuya', type: 'light', on: true, online: true },
-    { id: 'demo-4', name: 'Bedroom Fan', platform: 'atomberg', type: 'fan', on: true, online: true, speed: 3 },
-    { id: 'demo-5', name: 'Living Room Fan', platform: 'atomberg', type: 'fan', on: false, online: true, speed: 0 },
-    { id: 'demo-6', name: 'Front Door', platform: 'tuya', type: 'lock', on: true, online: true },
-    { id: 'demo-7', name: 'Back Door', platform: 'tuya', type: 'lock', on: true, online: true },
-    { id: 'demo-8', name: 'Living Room Speaker', platform: 'alexa', type: 'speaker', on: false, online: true },
-    { id: 'demo-9', name: 'Bedroom Speaker', platform: 'alexa', type: 'speaker', on: false, online: true },
-    { id: 'demo-10', name: 'Robot Vacuum', platform: 'tuya', type: 'vacuum', on: false, online: true },
-  ];
-  renderDevices(allDevices);
-  document.getElementById('s-on').textContent = allDevices.filter(d=>d.on).length;
-  document.getElementById('s-total').textContent = `of ${allDevices.length} total (demo)`;
+function renderAll() {
+  setGreeting();
+  renderStatusPills();
+  renderTabs();
+  renderRooms();
 }
 
-function renderDevices(devices) {
-  const grid = document.getElementById('devices-grid');
-  if (!devices.length) { grid.innerHTML = '<div style="color:var(--muted);font-size:13px;">No devices found.</div>'; return; }
-  grid.innerHTML = devices.map(d => `
-    <div class="device-card ${d.on ? 'on' : ''} ${d.online ? '' : 'offline'}" id="dc-${d.id}" onclick="tapDevice('${d.id}')">
-      <div class="device-toggle"></div>
-      <span class="device-emoji">${emoji[d.type] || '📦'}</span>
-      <div class="device-name">${d.name}</div>
-      <div class="device-state">${d.on ? (d.speed ? `Speed ${d.speed}` : 'On') : 'Off'}${!d.online ? ' · Offline' : ''}</div>
-      ${d.type === 'fan' && d.on ? `<div class="speed-dots">${[1,2,3,4,5].map(n=>`<div class="dot ${n<=(d.speed||0)?'lit':''}"></div>`).join('')}</div>` : ''}
+function renderStatusPills() {
+  document.getElementById('lights-on').textContent = allDevices.filter(d => d.type === 'light' && d.on).length;
+  document.getElementById('fans-on').textContent = allDevices.filter(d => d.type === 'fan' && d.on).length;
+}
+
+function renderTabs() {
+  const rooms = [...new Set(allDevices.map(d => d.room))].sort();
+  const html = [
+    `<button class="tab ${activeRoom==='all'?'active':''}" onclick="setRoom('all')">All<span class="tab-count">${allDevices.length}</span></button>`,
+    ...rooms.map(r => {
+      const count = allDevices.filter(d => d.room === r).length;
+      return `<button class="tab ${activeRoom===r?'active':''}" onclick="setRoom('${r.replace(/'/g,"\\'")}')">${r}<span class="tab-count">${count}</span></button>`;
+    })
+  ].join('');
+  document.getElementById('tabs').innerHTML = html;
+}
+
+function setRoom(r) {
+  activeRoom = r;
+  renderTabs();
+  renderRooms();
+}
+
+function renderRooms() {
+  const filtered = activeRoom === 'all' ? allDevices : allDevices.filter(d => d.room === activeRoom);
+  if (!filtered.length) {
+    document.getElementById('rooms').innerHTML = `<div class="empty"><div class="empty-icon">🏠</div>No devices in this room</div>`;
+    return;
+  }
+  if (activeRoom !== 'all') {
+    document.getElementById('rooms').innerHTML = renderRoomBlock(activeRoom, filtered);
+    return;
+  }
+  const grouped = {};
+  filtered.forEach(d => { (grouped[d.room] = grouped[d.room] || []).push(d); });
+  const html = Object.keys(grouped).sort().map(r => renderRoomBlock(r, grouped[r])).join('');
+  document.getElementById('rooms').innerHTML = html;
+}
+
+function renderRoomBlock(roomName, devices) {
+  const onCount = devices.filter(d => d.on).length;
+  return `
+    <div class="room">
+      <div class="room-header">
+        <div class="room-title">${roomName}</div>
+        <div class="room-meta">${onCount}/${devices.length} on</div>
+      </div>
+      <div class="device-grid">${devices.map(renderTile).join('')}</div>
     </div>
-  `).join('');
+  `;
 }
 
-function filterRoom(room) {
-  const filtered = allDevices.filter(d => (d.room || '').includes(room) || true); // Room data from API
-  renderDevices(filtered);
+const typeEmoji = { light: '💡', fan: '🌀', lock: '🔐', speaker: '🔊', vacuum: '🤖', device: '⚡' };
+const typeClass = { light: 'is-light', fan: 'is-fan', lock: 'is-lock', speaker: 'is-speaker', vacuum: 'is-vacuum' };
+
+function renderTile(d) {
+  const status = d.on
+    ? (d.type === 'fan' && d.speed ? `Speed ${d.speed}` : d.brightness ? `${Math.round(d.brightness/10)}%` : 'On')
+    : (d.online ? 'Off' : 'Offline');
+  return `
+    <div class="tile ${d.on?'on':''} ${typeClass[d.type]||''} ${d.online?'':'offline'}" onclick="toggleDevice('${d.id}')">
+      <div class="tile-top">
+        <div class="tile-icon-circle">${typeEmoji[d.type]||'⚡'}</div>
+      </div>
+      <div class="tile-bottom">
+        <div class="tile-name">${d.name}</div>
+        <div class="tile-status">${status}</div>
+        ${d.type === 'fan' && d.on ? `<div class="speed-bars">${[1,2,3,4,5].map(n=>`<div class="speed-bar ${n<=(d.speed||0)?'lit':''}"></div>`).join('')}</div>` : ''}
+      </div>
+    </div>
+  `;
 }
 
-async function tapDevice(id) {
+async function toggleDevice(id) {
   const d = allDevices.find(x => x.id === id);
   if (!d) return;
   const newState = !d.on;
   d.on = newState;
-  renderDevices(allDevices);
-  document.getElementById('s-on').textContent = allDevices.filter(x=>x.on).length;
-
-  if (!id.startsWith('demo')) {
-    try {
-      await fetch(`${BACKEND_URL}/api/control`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceId: d.id, platform: d.platform, command: newState ? 'turn_on' : 'turn_off' })
-      });
-    } catch (e) { console.warn('Control failed:', e); }
-  }
-  addMsg('agent', `<b>HomeOS</b> — ${d.name} turned ${newState ? 'on' : 'off'}.`);
+  renderAll();
+  try {
+    await fetch(`${BACKEND_URL}/api/control`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId: d.id, platform: d.platform, command: newState ? 'turn_on' : 'turn_off' })
+    });
+  } catch(e) { console.warn('Control failed:', e); }
 }
 
-// ── Rules ─────────────────────────────────────────────────────────────────
-function renderRules() {
-  document.getElementById('rules-list').innerHTML = rules.map((r, i) => `
-    <div class="rule">
-      <div class="rule-icon ${r.trigger}">${r.trigger==='time'?'⏰':r.trigger==='voice'?'🎤':r.trigger==='motion'?'🚶':'🚪'}</div>
-      <div class="rule-info">
-        <div class="rule-name">${r.name}</div>
-        <div class="rule-desc">${r.desc}</div>
-      </div>
-      <div class="rule-switch ${r.on?'on':'off'}" onclick="toggleRule(${i})"></div>
-    </div>
-  `).join('');
-  document.getElementById('s-rules').textContent = rules.filter(r=>r.on).length;
+async function runScene(name) {
+  openDrawer();
+  addChat('user', `Run ${name.replace('_',' ')}`);
+  await sendToAgent(`Run ${name.replace('_',' ')} scene now`);
 }
 
-function toggleRule(i) { rules[i].on = !rules[i].on; renderRules(); }
-
-function showAddRule() { document.getElementById('modal').classList.add('show'); }
-function hideModal() { document.getElementById('modal').classList.remove('show'); }
-function saveRule() {
-  const name = document.getElementById('r-name').value.trim() || 'New Rule';
-  const trigger = document.getElementById('r-trigger').value;
-  const when = document.getElementById('r-when').value;
-  const action = document.getElementById('r-action').value;
-  rules.unshift({ name, desc: `${when || trigger} → ${action}`, trigger, on: true });
-  renderRules();
-  hideModal();
-  document.getElementById('r-name').value = '';
-  addMsg('agent', `<b>HomeOS</b> — Rule "<em>${name}</em>" saved and active.`);
+function openDrawer() {
+  document.getElementById('drawer').classList.add('show');
+  document.getElementById('drawer-bg').classList.add('show');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('show');
+  document.getElementById('drawer-bg').classList.remove('show');
+}
+function toggleDrawer() {
+  document.getElementById('drawer').classList.contains('show') ? closeDrawer() : openDrawer();
 }
 
-// ── Agent chat ────────────────────────────────────────────────────────────
-function addMsg(type, html) {
-  const c = document.getElementById('agent-msgs');
-  const d = document.createElement('div');
-  d.className = `msg ${type}`;
-  d.innerHTML = html;
-  c.appendChild(d);
-  c.scrollTop = c.scrollHeight;
-  return d;
+function addChat(type, html) {
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = `msg-row ${type}`;
+  div.innerHTML = `<div class="msg-avatar">${type==='agent'?'✨':'👤'}</div><div class="msg-bubble">${html}</div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div.querySelector('.msg-bubble');
 }
 
-async function sendToAgent() {
-  if (isThinking) return;
-  const input = document.getElementById('agent-input');
-  const msg = input.value.trim();
-  if (!msg) return;
-  input.value = '';
-  addMsg('user', '🧑 ' + msg);
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if (!msg || isThinking) return;
+  inp.value = '';
+  addChat('user', msg);
+  await sendToAgent(msg);
+}
+
+async function sendToAgent(msg) {
   isThinking = true;
-
-  const thinkEl = addMsg('agent', '<b>HomeOS</b> — <span class="dots"><span></span><span></span><span></span></span>');
-
+  const thinkBubble = addChat('agent', '<div class="dots-loader"><span></span><span></span><span></span></div>');
   try {
     const res = await fetch(`${BACKEND_URL}/api/agent/chat`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: msg, history: chatHistory })
     });
     const data = await res.json();
-    thinkEl.innerHTML = `<b>HomeOS</b> — ${data.reply}`;
+    thinkBubble.textContent = data.reply || 'Done';
     chatHistory = data.updatedHistory || chatHistory;
-    // Refresh devices in case agent changed states
-    setTimeout(refreshDevices, 1000);
-  } catch (err) {
-    thinkEl.innerHTML = `<b>HomeOS</b> — Couldn't reach backend. Check your connection.`;
+    setTimeout(refreshDevices, 800);
+  } catch(e) {
+    thinkBubble.textContent = "Sorry, I couldn't connect.";
   }
   isThinking = false;
 }
 
-// ── Voice ─────────────────────────────────────────────────────────────────
-let SR = null;
 function toggleVoice() {
   if (isListening) { SR?.stop(); return; }
-  const SRClass = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SRClass) { addMsg('agent', '<b>HomeOS</b> — Voice not supported on this browser. Use the text input.'); return; }
-  SR = new SRClass();
+  const Cls = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Cls) { addChat('agent','Voice not supported in this browser.'); return; }
+  SR = new Cls();
   SR.lang = 'en-IN';
-  SR.continuous = false;
   SR.onstart = () => {
     isListening = true;
-    document.getElementById('voice-btn').classList.add('active');
-    document.getElementById('voice-bars').classList.add('show');
-    document.getElementById('voice-label').textContent = 'Listening…';
+    document.getElementById('voice-btn').classList.add('listening');
   };
   SR.onresult = e => {
-    document.getElementById('agent-input').value = e.results[0][0].transcript;
-    sendToAgent();
+    document.getElementById('chat-input').value = e.results[0][0].transcript;
+    sendChat();
   };
-  SR.onerror = SR.onend = () => {
+  SR.onend = SR.onerror = () => {
     isListening = false;
-    document.getElementById('voice-btn').classList.remove('active');
-    document.getElementById('voice-bars').classList.remove('show');
-    document.getElementById('voice-label').textContent = 'Voice';
+    document.getElementById('voice-btn').classList.remove('listening');
   };
   SR.start();
 }
 
-// ── Nav ───────────────────────────────────────────────────────────────────
-function setNav(el, view) {
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('page-title').textContent = el.textContent.trim();
+function openRuleModal() { document.getElementById('rule-modal').classList.add('show'); }
+function closeRuleModal() { document.getElementById('rule-modal').classList.remove('show'); }
+function saveRule() {
+  const name = document.getElementById('r-name').value.trim() || 'New Rule';
+  closeRuleModal();
+  document.getElementById('r-name').value = '';
+  openDrawer();
+  addChat('agent', `Saved rule "${name}". I'll handle it from here.`);
 }
 
-// ── Backend URL config ────────────────────────────────────────────────────
-function setBackend(url) {
-  localStorage.setItem('homeos_backend', url);
-  location.reload();
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────
 refreshDevices();
-renderRules();
-// Update time
-setInterval(() => {
-  const now = new Date();
-  document.getElementById('page-sub').textContent =
-    now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'}) + ' · ' +
-    now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' · Mumbai';
-}, 30000);
+setInterval(setGreeting, 60000);
 </script>
 </body>
 </html>
