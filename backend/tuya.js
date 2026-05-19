@@ -88,39 +88,13 @@ function normalizeDevices(list, source) {
   }));
 }
 
-// GET /api/tuya/devices — tries every known endpoint
+// GET /api/tuya/devices — hardcoded to working endpoint a
 tuyaRouter.get('/devices', async (req, res) => {
   try {
-    const { token, uid } = await getToken();
-
-    // Try endpoints in order, return first one that works
-    const endpoints = [
-      `/v1.0/iot-01/associated-users/devices`,
-      `/v2.0/cloud/thing/device?page_size=50`,
-      `/v1.0/users/${uid}/devices`,
-      `/v1.0/devices`,
-    ];
-
-    for (const path of endpoints) {
-      try {
-        const data = await tuyaRequest('GET', path);
-        if (data.success) {
-          // Handle all possible response structures across Tuya endpoints
-          const result = data.result;
-          const list = Array.isArray(result) ? result
-            : Array.isArray(result?.devices) ? result.devices
-            : Array.isArray(result?.list) ? result.list
-            : [];
-          if (list.length > 0) {
-            return res.json({ devices: normalizeDevices(list, path), source: path });
-          }
-        }
-      } catch(e) {
-        continue;
-      }
-    }
-
-    res.json({ devices: [], message: 'No devices found across all endpoints' });
+    const data = await tuyaRequest('GET', '/v1.0/iot-01/associated-users/devices');
+    const list = data.result?.devices || [];
+    const devices = normalizeDevices(list, 'a');
+    res.json({ devices, raw_count: list.length, success: data.success });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
