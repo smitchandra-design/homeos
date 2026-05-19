@@ -89,7 +89,7 @@ function normalizeDevices(list, source) {
 }
 
 // GET /api/tuya/devices — hardcoded to working endpoint a
-tuyaRouter.get('/devices', async (req, res) => {
+tuyaRouter.get('/devicesv2', async (req, res) => {
   try {
     const data = await tuyaRequest('GET', '/v1.0/iot-01/associated-users/devices');
     const list = data.result?.devices || [];
