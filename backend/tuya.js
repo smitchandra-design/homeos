@@ -7,7 +7,7 @@ const BASE_URL = 'https://openapi.tuyain.com';
 const CLIENT_ID = process.env.TUYA_CLIENT_ID;
 const CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
 
-let tokenCache = { token: null, expiresAt: 0 };
+let tokenCache = { token: null, uid: null, expiresAt: 0 };
 
 function sign(method, path, body, token, timestamp) {
   const contentHash = crypto.createHash('sha256').update(body || '').digest('hex');
@@ -17,7 +17,7 @@ function sign(method, path, body, token, timestamp) {
 }
 
 async function getToken() {
-  if (tokenCache.token && Date.now() < tokenCache.expiresAt) return tokenCache.token;
+  if (tokenCache.token && Date.now() < tokenCache.expiresAt) return tokenCache;
   const ts = Date.now().toString();
   const sig = sign('GET', '/v1.0/token?grant_type=1', '', '', ts);
   const res = await fetch(`${BASE_URL}/v1.0/token?grant_type=1`, {
@@ -31,14 +31,18 @@ async function getToken() {
   });
   const data = await res.json();
   if (data.success) {
-    tokenCache = { token: data.result.access_token, expiresAt: Date.now() + data.result.expire_time * 1000 };
-    return tokenCache.token;
+    tokenCache = {
+      token: data.result.access_token,
+      uid: data.result.uid,
+      expiresAt: Date.now() + data.result.expire_time * 1000
+    };
+    return tokenCache;
   }
   throw new Error('Tuya auth failed: ' + JSON.stringify(data));
 }
 
 async function tuyaRequest(method, path, body = null) {
-  const token = await getToken();
+  const { token } = await getToken();
   const ts = Date.now().toString();
   const bodyStr = body ? JSON.stringify(body) : '';
   const sig = sign(method, path, bodyStr, token, ts);
@@ -59,84 +63,91 @@ async function tuyaRequest(method, path, body = null) {
 }
 
 function mapCategory(category) {
-  const map = { dj: 'light', dc: 'light', dd: 'light', dbl: 'light', tgkg: 'light', tdq: 'light', ms: 'lock', cl: 'curtain', sweeping_robot: 'vacuum', sd: 'vacuum', fs: 'fan', fskg: 'fan' };
+  const map = {
+    dj: 'light', dc: 'light', dd: 'light', dbl: 'light',
+    tgkg: 'light', tdq: 'light', gyd: 'light', xdd: 'light',
+    ms: 'lock', bxx: 'lock', jtmspro: 'lock',
+    cl: 'curtain', fs: 'fan', fskg: 'fan',
+    sweeping_robot: 'vacuum', sd: 'vacuum',
+    sp: 'speaker', wk: 'thermostat'
+  };
   return map[category] || 'device';
 }
 
-// Debug endpoint — shows raw Tuya API responses to help diagnose
-tuyaRouter.get('/debug', async (req, res) => {
-  const homeId = process.env.TUYA_HOME_ID;
-  const results = {};
+function normalizeDevices(list, source) {
+  return list.map(d => ({
+    id: d.id || d.device_id,
+    name: d.name || d.device_name || 'Device',
+    platform: 'tuya',
+    type: mapCategory(d.category),
+    online: d.online ?? d.is_online ?? false,
+    on: d.status?.find(s => ['switch_led','switch','switch_1'].includes(s.code))?.value ?? false,
+    brightness: d.status?.find(s => ['bright_value_v2','bright_value'].includes(s.code))?.value,
+    source,
+    raw: d.status || []
+  }));
+}
+
+// GET /api/tuya/devices — tries every known endpoint
+tuyaRouter.get('/devices', async (req, res) => {
   try {
-    // Try all known device list endpoints
-    results.token_ok = true;
+    const { token, uid } = await getToken();
 
-    // Method 1: Home devices (most common)
-    try {
-      results.method1_home = await tuyaRequest('GET', `/v1.0/homes/${homeId}/devices`);
-    } catch(e) { results.method1_home = { error: e.message }; }
+    // Try endpoints in order, return first one that works
+    const endpoints = [
+      `/v1.0/iot-01/associated-users/devices`,
+      `/v2.0/cloud/thing/device?page_size=50`,
+      `/v1.0/users/${uid}/devices`,
+      `/v1.0/devices`,
+    ];
 
-    // Method 2: Cloud thing device with space_id
-    try {
-      results.method2_cloud = await tuyaRequest('GET', `/v2.0/cloud/thing/device?space_id=${homeId}`);
-    } catch(e) { results.method2_cloud = { error: e.message }; }
+    for (const path of endpoints) {
+      try {
+        const data = await tuyaRequest('GET', path);
+        if (data.success) {
+          // Handle all possible response structures across Tuya endpoints
+          const result = data.result;
+          const list = Array.isArray(result) ? result
+            : Array.isArray(result?.devices) ? result.devices
+            : Array.isArray(result?.list) ? result.list
+            : [];
+          if (list.length > 0) {
+            return res.json({ devices: normalizeDevices(list, path), source: path });
+          }
+        }
+      } catch(e) {
+        continue;
+      }
+    }
 
-    // Method 3: User devices
-    try {
-      results.method3_user = await tuyaRequest('GET', `/v1.0/users/${homeId}/devices`);
-    } catch(e) { results.method3_user = { error: e.message }; }
-
-    // Method 4: Asset devices
-    try {
-      results.method4_asset = await tuyaRequest('GET', `/v1.0/assets/${homeId}/devices`);
-    } catch(e) { results.method4_asset = { error: e.message }; }
-
-    res.json(results);
+    res.json({ devices: [], message: 'No devices found across all endpoints' });
   } catch (err) {
-    res.status(500).json({ token_ok: false, error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/tuya/devices
-tuyaRouter.get('/devices', async (req, res) => {
+// GET /api/tuya/debug — shows result from every endpoint
+tuyaRouter.get('/debug', async (req, res) => {
   try {
-    const homeId = process.env.TUYA_HOME_ID;
-    let devices = [];
+    const { token, uid } = await getToken();
+    const results = { token_ok: true, uid };
 
-    // Try Method 1: /v1.0/homes/{homeId}/devices — works for most Smart Life accounts
-    const data1 = await tuyaRequest('GET', `/v1.0/homes/${homeId}/devices`);
-    if (data1.success && data1.result?.length > 0) {
-      devices = data1.result.map(d => ({
-        id: d.id,
-        name: d.name,
-        platform: 'tuya',
-        type: mapCategory(d.category),
-        online: d.online,
-        on: d.status?.find(s => s.code === 'switch_led' || s.code === 'switch')?.value ?? false,
-        brightness: d.status?.find(s => s.code === 'bright_value_v2')?.value,
-        raw: d.status
-      }));
-      return res.json({ devices, source: 'homes_api' });
+    const endpoints = [
+      `/v1.0/iot-01/associated-users/devices`,
+      `/v2.0/cloud/thing/device?page_size=50`,
+      `/v1.0/users/${uid}/devices`,
+      `/v1.0/devices`,
+    ];
+
+    for (const path of endpoints) {
+      try {
+        results[path] = await tuyaRequest('GET', path);
+      } catch(e) {
+        results[path] = { error: e.message };
+      }
     }
 
-    // Fallback Method 2: /v2.0/cloud/thing/device
-    const data2 = await tuyaRequest('GET', `/v2.0/cloud/thing/device?space_id=${homeId}`);
-    if (data2.success && data2.result?.list?.length > 0) {
-      devices = data2.result.list.map(d => ({
-        id: d.id,
-        name: d.name,
-        platform: 'tuya',
-        type: mapCategory(d.category),
-        online: d.is_online,
-        on: d.status?.find(s => s.code === 'switch_led' || s.code === 'switch')?.value ?? false,
-        brightness: d.status?.find(s => s.code === 'bright_value_v2')?.value,
-        raw: d.status
-      }));
-      return res.json({ devices, source: 'cloud_api' });
-    }
-
-    // Return empty with debug info so we know which API responded what
-    res.json({ devices: [], debug: { data1, data2 } });
+    res.json(results);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -148,11 +159,11 @@ tuyaRouter.post('/control', async (req, res) => {
   try {
     let commands = [];
     switch (command) {
-      case 'turn_on':   commands = [{ code: 'switch_led', value: true }, { code: 'switch', value: true }]; break;
-      case 'turn_off':  commands = [{ code: 'switch_led', value: false }, { code: 'switch', value: false }]; break;
+      case 'turn_on':        commands = [{ code: 'switch_led', value: true }, { code: 'switch', value: true }, { code: 'switch_1', value: true }]; break;
+      case 'turn_off':       commands = [{ code: 'switch_led', value: false }, { code: 'switch', value: false }, { code: 'switch_1', value: false }]; break;
       case 'set_brightness': commands = [{ code: 'bright_value_v2', value: Math.round(value * 10) }]; break;
-      case 'lock':      commands = [{ code: 'open', value: false }]; break;
-      case 'unlock':    commands = [{ code: 'open', value: true }]; break;
+      case 'lock':           commands = [{ code: 'open', value: false }]; break;
+      case 'unlock':         commands = [{ code: 'open', value: true }]; break;
       default: return res.status(400).json({ error: 'Unknown command' });
     }
     const data = await tuyaRequest('POST', `/v1.0/devices/${deviceId}/commands`, { commands });
