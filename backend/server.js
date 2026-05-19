@@ -103,6 +103,47 @@ app.get('/debug-tuya-homes', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+app.get('/debug-tuya-linked', async (req, res) => {
+  const CLIENT_ID = process.env.TUYA_CLIENT_ID;
+  const CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
+  const BASE_URL = 'https://openapi.tuyain.com';
+  const crypto = await import('crypto');
+
+  async function req(method, path) {
+    // Get token first
+    const ts0 = Date.now().toString();
+    const ch0 = crypto.default.createHash('sha256').update('').digest('hex');
+    const sts0 = ['GET', ch0, '', '/v1.0/token?grant_type=1'].join('\n');
+    const ss0 = CLIENT_ID + ts0 + sts0;
+    const sig0 = crypto.default.createHmac('sha256', CLIENT_SECRET).update(ss0).digest('hex').toUpperCase();
+    const tRes = await fetch(`${BASE_URL}/v1.0/token?grant_type=1`, {
+      headers: { 'client_id': CLIENT_ID, 'sign': sig0, 'sign_method': 'HMAC-SHA256', 't': ts0, 'lang': 'en' }
+    });
+    const tData = await tRes.json();
+    const token = tData.result.access_token;
+
+    const ts = Date.now().toString();
+    const ch = crypto.default.createHash('sha256').update('').digest('hex');
+    const sts = [method, ch, '', path].join('\n');
+    const ss = CLIENT_ID + token + ts + sts;
+    const sig = crypto.default.createHmac('sha256', CLIENT_SECRET).update(ss).digest('hex').toUpperCase();
+    const r = await fetch(`${BASE_URL}${path}`, {
+      headers: { 'client_id': CLIENT_ID, 'access_token': token, 'sign': sig, 'sign_method': 'HMAC-SHA256', 't': ts, 'lang': 'en' }
+    });
+    return r.json();
+  }
+
+  try {
+    const results = {};
+    // Try all possible device list endpoints
+    results.a = await req('GET', '/v1.0/iot-01/associated-users/devices');
+    results.b = await req('GET', '/v2.0/cloud/thing/device?page_size=20');
+    results.c = await req('GET', '/v1.0/devices');
+    res.json(results);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // Device integrations
 app.use('/api/tuya', tuyaRouter);
