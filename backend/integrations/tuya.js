@@ -167,3 +167,20 @@ tuyaRouter.post('/scene', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// GET /api/tuya/test-control?id=DEVICE_ID&cmd=turn_on — easy browser test
+tuyaRouter.get('/test-control', async (req, res) => {
+  const { id, cmd = 'turn_on' } = req.query;
+  if (!id) return res.json({ error: 'Missing ?id=DEVICE_ID' });
+  try {
+    let commands = [];
+    switch (cmd) {
+      case 'turn_on':  commands = [{ code: 'switch_led', value: true }, { code: 'switch', value: true }, { code: 'switch_1', value: true }]; break;
+      case 'turn_off': commands = [{ code: 'switch_led', value: false }, { code: 'switch', value: false }, { code: 'switch_1', value: false }]; break;
+    }
+    const data = await tuyaRequest('POST', `/v1.0/devices/${id}/commands`, { commands });
+    res.json({ deviceId: id, command: cmd, sent_commands: commands, tuya_response: data });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
